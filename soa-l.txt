@@ -1,0 +1,341 @@
+composer create-project laravel/laravel Practicalaravel
+-php artisan serve
+-.env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=vehiculos_db
+DB_USERNAME=root
+DB_PASSWORD=
+-php artisan make:model Conexión
+-php artisan make:model Vehiculo -mcr
+------app/Models/Vehiculo.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Vehiculo extends Model
+{
+
+    protected $fillable = [
+    'marca',
+    'modelo',
+    'placa',
+    'chasis',
+    'anio',
+    'color'
+];
+ protected $table = 'vehiculos';
+
+public $timestamps = false;
+}
+-------------
+-php artisan migrate
+
+-----database/migrations/2026_04_06_011304_create_vehiculos_table
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+
+    public function up()
+{
+    Schema::create('vehiculos', function (Blueprint $table) {
+        $table->id();
+        $table->string('marca');
+        $table->string('modelo');
+        $table->string('placa');
+        $table->string('chasis');
+        $table->integer('anio');
+        $table->string('color');
+        $table->timestamps();
+    });
+}
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('vehiculos');
+    }
+    
+};
+-----controllers/VEhiculoController
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Vehiculo;
+use Illuminate\Http\Request;
+
+class VehiculoController extends Controller
+{
+   public function index(Request $request)
+{
+    $query = Vehiculo::query();
+
+    if ($request->marca) {
+        $query->where('marca', 'like', "%{$request->marca}%");
+    }
+
+    return $query->get();
+}
+
+    public function store(Request $request)
+    {
+        return Vehiculo::create($request->all());
+    }
+
+    public function show($id)
+    {
+        return Vehiculo::findOrFail($id);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $vehiculo = Vehiculo::findOrFail($id);
+        $vehiculo->update($request->all());
+        return $vehiculo;
+    }
+
+    public function destroy($id)
+    {
+        Vehiculo::destroy($id);
+        return response()->json(["mensaje" => "Eliminado"]);
+    }
+}
+
+------routes/api.php
+
+use App\Http\Controllers\VehiculoController;
+
+Route::apiResource('vehiculos', VehiculoController::class);
+
+------bootstrap/app.php
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+         api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        //
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        //
+    })->create();
+------Body → raw → JSON
+get http://127.0.0.1:8000/api/vehiculos
+post http://127.0.0.1:8000/api/vehiculos
+put http://127.0.0.1:8000/api/vehiculos/5
+Deleted
+http://127.0.0.1:8000/api/vehiculos/5
+{
+  "marca": "Toyota",
+  "modelo": "Corolla",
+  "placa": "ABC123",
+  "chasis": "CH001",
+  "anio": 2022,
+  "color": "Blanco"
+}
+--------------
+HTML 
+resources/views/index.blade.php
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Vehículos Laravel</title>
+
+<style>
+body { font-family: Arial; background:#f4f4f4; text-align:center; }
+input, button { padding:8px; margin:5px; }
+table { width:90%; margin:auto; border-collapse:collapse; background:white; }
+th, td { padding:10px; border:1px solid #ccc; }
+</style>
+</head>
+
+<body>
+
+<h2>🚗 CRUD Vehículos (Laravel)</h2>
+
+<input type="hidden" id="id">
+<input type="text" id="marca" placeholder="Marca">
+<input type="text" id="modelo" placeholder="Modelo">
+<input type="text" id="placa" placeholder="Placa">
+<input type="text" id="chasis" placeholder="Chasis">
+<input type="number" id="anio" placeholder="Año">
+<input type="text" id="color" placeholder="Color">
+<input type="text" id="buscarMarca" placeholder="Buscar por marca">
+<button onclick="buscar()">Buscar</button>
+<button onclick="cargar()">Mostrar todo</button>
+<br>
+<button onclick="guardar()">Guardar</button>
+<button onclick="actualizar()">Actualizar</button>
+
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Marca</th>
+<th>Modelo</th>
+<th>Placa</th>
+<th>Chasis</th>
+<th>Año</th>
+<th>Color</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
+</table>
+
+<script>
+
+const API = "http://127.0.0.1:8000/api/vehiculos";
+
+// 🔹 LISTAR
+function cargar() {
+    fetch(API)
+    .then(res => res.json())
+    .then(data => {
+        let tabla = document.getElementById("tabla");
+        tabla.innerHTML = "";
+
+        data.forEach(v => {
+            tabla.innerHTML += `
+            <tr>
+                <td>${v.id}</td>
+                <td>${v.marca}</td>
+                <td>${v.modelo}</td>
+                <td>${v.placa}</td>
+                <td>${v.chasis}</td>
+                <td>${v.anio}</td>
+                <td>${v.color}</td>
+                <td>
+                    <button onclick='editar(${JSON.stringify(v)})'>Editar</button>
+                    <button onclick='eliminar(${v.id})'>Eliminar</button>
+                </td>
+            </tr>`;
+        });
+    });
+}
+function buscar() {
+    let marca = document.getElementById("buscarMarca").value;
+
+    fetch(API + "?marca=" + marca)
+    .then(res => res.json())
+    .then(data => {
+        let tabla = document.getElementById("tabla");
+        tabla.innerHTML = "";
+
+        data.forEach(v => {
+            tabla.innerHTML += `
+            <tr>
+                <td>${v.id}</td>
+                <td>${v.marca}</td>
+                <td>${v.modelo}</td>
+                <td>${v.placa}</td>
+                <td>${v.chasis}</td>
+                <td>${v.anio}</td>
+                <td>${v.color}</td>
+                <td>
+                    <button onclick='editar(${JSON.stringify(v)})'>Editar</button>
+                    <button onclick='eliminar(${v.id})'>Eliminar</button>
+                </td>
+            </tr>`;
+        });
+    });
+}
+
+// 🔹 GUARDAR
+function guardar() {
+    let data = obtenerDatos();
+
+    fetch(API, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    })
+    .then(() => {
+        cargar();
+        limpiar();
+    });
+}
+
+// 🔹 EDITAR
+function editar(v) {
+    document.getElementById("id").value = v.id;
+    document.getElementById("marca").value = v.marca;
+    document.getElementById("modelo").value = v.modelo;
+    document.getElementById("placa").value = v.placa;
+    document.getElementById("chasis").value = v.chasis;
+    document.getElementById("anio").value = v.anio;
+    document.getElementById("color").value = v.color;
+}
+
+// 🔹 ACTUALIZAR
+function actualizar() {
+    let id = document.getElementById("id").value;
+    let data = obtenerDatos();
+
+    fetch(API + "/" + id, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    })
+    .then(() => {
+        cargar();
+        limpiar();
+    });
+}
+
+// 🔹 ELIMINAR
+function eliminar(id) {
+    fetch(API + "/" + id, {
+        method: "DELETE"
+    })
+    .then(() => cargar());
+}
+
+// 🔹 DATOS
+function obtenerDatos() {
+    return {
+        marca: document.getElementById("marca").value,
+        modelo: document.getElementById("modelo").value,
+        placa: document.getElementById("placa").value,
+        chasis: document.getElementById("chasis").value,
+        anio: document.getElementById("anio").value,
+        color: document.getElementById("color").value
+    };
+}
+
+// 🔹 LIMPIAR
+function limpiar() {
+    document.querySelectorAll("input").forEach(i => i.value = "");
+}
+
+// INICIO
+cargar();
+
+</script>
+
+</body>
+</html>
+

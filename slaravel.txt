@@ -1,0 +1,103 @@
+https://getcomposer.org/download/
+composer create-project laravel/laravel laravel
+php artisan serve
+php artisan serve
+php artisan make:model Conexión
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Conexion extends Model
+{
+    //
+    protected $table = 'estudiantes';
+    protected $primaryKey = 'cedula';
+protected $keytype='string';
+public $incrementing = false;
+public $timestamps = false;
+protected $fillable = [
+    'cedula',
+    'nombre',
+    'apellido',
+    'telefono',
+    'direccion',
+
+];
+
+}
+php artisan make:controlller EstudianteController
+<?php
+
+namespace App\Http\Controllers;
+use App\Models\Conexion;
+
+use Illuminate\Http\Request;
+
+class EstudianteController extends Controller
+{
+    //
+    public function selectEst(){
+return response()->json([Conexion::all()]);
+
+    }
+    public function index(){
+    $estudiantes = Conexion::all();
+     return response()->json($estudiantes);
+
+    }
+    public function store(Request $request){
+        $estudiante = Conexion::create([
+            'cedula' => $request->txtCedula,
+            'nombre' => $request->txtNombre,
+            'apellido' => $request->txtApellido,
+            'telefono' => $request->txtTelefono,
+            'direccion' => $request->txtDireccion,
+
+        ]);
+        return response()->json('Estudiante creado');
+    }
+     public function update(Request $request){
+        $cedula=$request -> txtCedula;
+        $estudiante = Conexion::find($cedula);
+        $estudiante -> update([
+            'nombre' => $request->txtNombre,
+            'apellido' => $request->txtApellido,
+            'telefono' => $request->txtTelefono,
+            'direccion' => $request->txtDireccion,
+
+        ]);
+        return response()->json('Estudiante actualizado');
+    }
+    public function destroy($cedula)
+{
+    $estudiante = Conexion::where('cedula', $cedula)->first();
+
+    if (!$estudiante) {
+        return response()->json(['mensaje' => 'Estudiante no encontrado'], 404);
+    }
+
+    $estudiante->delete();
+
+    return response()->json(['mensaje' => 'Estudiante eliminado correctamente']);
+}
+
+}
+
+
+
+php artisan install:api
+api.php 
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\EstudianteController;
+
+Route::get('/est', [EstudianteController::class,'index']);
+Route::get('/estudiantes', [EstudianteController::class,'selectEst']);
+Route::post('/estudiantes', [EstudianteController::class,'store']);
+Route::put('/estudiantes', [EstudianteController::class,'update']);
+
+Route::delete('/estudiantes/{cedula}', [EstudianteController::class,'destroy']);
