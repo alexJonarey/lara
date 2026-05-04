@@ -15,12 +15,21 @@ public static function selectESt(){
 public static function selectEStudiante(){
     $objoConexion= new Conexion();
     $conectar=$objoConexion->conectar();
-        $cedula=$_POST['txtcedula'];
-    $sqlselect="select * from estudiante where cedula='$cedula'";
+
+    $cedula=$_GET['txtcedula'] ?? "";
+
+    if($cedula == ""){
+        echo json_encode([]); // 🔥 evita null
+        return;
+    }
+
+    $sqlselect="select * from estudiante where cedula=?";
     $resultado=$conectar->prepare($sqlselect);
-    $resultado->execute();
+    $resultado->execute([$cedula]);
+
     $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode($data);
+
+    echo json_encode($data ?: []); // 🔥 siempre array
 }
 public static function insertESt(){
     $objoConexion= new Conexion();
@@ -36,7 +45,7 @@ public static function insertESt(){
     $data="se inserto correctamente el estudiante ";
     echo json_encode($data);
 }
-public static function DeletESt(){
+public static function deleteESt(){
     $objoConexion= new Conexion();
     $conectar=$objoConexion->conectar();
     $cedula=$_GET['txtcedula'];
@@ -48,18 +57,25 @@ public static function DeletESt(){
     echo json_encode($data);
 }
 public static function ubdateESt(){
-    $objoConexion= new Conexion();
-    $conectar=$objoConexion->conectar();
-    $cedula=$_GET['txtcedula'];
-    $nombre=$_GET['txtnombre'];
-    $apellido=$_GET['txtapellido'];
-    $telefono=$_GET['txttelefono'];
-   $direccion=$_GET['txtdirecion'];
-    $sqlselect="update   estudiante set nombre='$nombre',apellido='$apellido',telefono='$telefono',direccion='$direccion' where cedula=$cedula";
-    $resultado=$conectar->prepare($sqlselect);
-    $resultado->execute();
-    $data="se actualizo el estudiante";
-    echo json_encode($data);
+
+    $objoConexion = new Conexion();
+    $conectar = $objoConexion->conectar();
+
+    // 🔥 CAMBIO AQUÍ
+    $cedula = $_GET['txtcedula'] ?? "";
+    $nombre = $_GET['txtnombre'] ?? "";
+    $apellido = $_GET['txtapellido'] ?? "";
+    $telefono = $_GET['txttelefono'] ?? "";
+    $direccion = $_GET['txtdireccion'] ?? "";
+
+    $sql = "UPDATE estudiante 
+            SET nombre=?, apellido=?, telefono=?, direccion=? 
+            WHERE cedula=?";
+
+    $stmt = $conectar->prepare($sql);
+    $stmt->execute([$nombre, $apellido, $telefono, $direccion, $cedula]);
+
+    echo json_encode("Se actualizó el estudiante");
 }
 
 }

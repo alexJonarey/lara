@@ -1,0 +1,738 @@
+conexión.php
+<?php
+class Conexion{
+    public function conectar(){
+        $server="localhost";
+        $user="root";
+        $pass="";
+        $database="soa1";
+        try {
+        $conn= new PDO("mysql:host=$server;dbname=$database",$user,$pass);
+        } catch (Exception $e) {
+        die("fallo conexion ".$e->getMessage());
+       }
+        return $conn; 
+    }
+}
+cruds.php
+
+<?php
+include_once("conexion.php");
+
+Class cruds{
+
+public static function selectESt(){
+    $objoConexion= new Conexion();
+    $conectar=$objoConexion->conectar();
+    $sqlselect="select * from estudiante";
+    $resultado=$conectar->prepare($sqlselect);
+    $resultado->execute();
+    $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode($data);
+}
+public static function selectEStudiante(){
+    $objoConexion= new Conexion();
+    $conectar=$objoConexion->conectar();
+
+    $cedula=$_GET['txtcedula'] ?? "";
+
+    if($cedula == ""){
+        echo json_encode([]); // 🔥 evita null
+        return;
+    }
+
+    $sqlselect="select * from estudiante where cedula=?";
+    $resultado=$conectar->prepare($sqlselect);
+    $resultado->execute([$cedula]);
+
+    $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+
+    echo json_encode($data ?: []); // 🔥 siempre array
+}
+public static function insertESt(){
+    $objoConexion= new Conexion();
+    $conectar=$objoConexion->conectar();
+    $cedula=$_POST['txtcedula'];
+    $nombre=$_POST['txtnombre'];
+    $apellido=$_POST['txtapellido'];
+    $telefono=$_POST['txttelefono'];
+    $direccion=$_POST['txtdirecion'];
+    $sqlselect="insert into  estudiante values('$cedula','$nombre','$apellido','$telefono','$direccion')";
+    $resultado=$conectar->prepare($sqlselect);
+    $resultado->execute();
+    $data="se inserto correctamente el estudiante ";
+    echo json_encode($data);
+}
+public static function deleteESt(){
+    $objoConexion= new Conexion();
+    $conectar=$objoConexion->conectar();
+    $cedula=$_GET['txtcedula'];
+
+    $sqlDelete="Delete from estudiante where cedula='$cedula'";
+    $resultado=$conectar->prepare($sqlDelete);
+    $resultado->execute();
+    $data="se elimino correctamente el estudiante ";
+    echo json_encode($data);
+}
+public static function ubdateESt(){
+
+    $objoConexion = new Conexion();
+    $conectar = $objoConexion->conectar();
+
+    // 🔥 CAMBIO AQUÍ
+    $cedula = $_GET['txtcedula'] ?? "";
+    $nombre = $_GET['txtnombre'] ?? "";
+    $apellido = $_GET['txtapellido'] ?? "";
+    $telefono = $_GET['txttelefono'] ?? "";
+    $direccion = $_GET['txtdireccion'] ?? "";
+
+    $sql = "UPDATE estudiante 
+            SET nombre=?, apellido=?, telefono=?, direccion=? 
+            WHERE cedula=?";
+
+    $stmt = $conectar->prepare($sql);
+    $stmt->execute([$nombre, $apellido, $telefono, $direccion, $cedula]);
+
+    echo json_encode("Se actualizó el estudiante");
+}
+
+}
+?>
+
+api.php
+<?php include_once '../models/cruds.php';
+ $opc=$_SERVER['REQUEST_METHOD']; 
+ switch($opc){ 
+    case 'GET':  
+    if(isset($_GET['txtcedula'])){
+        Cruds::selectEStudiante(); // buscar por cédula
+    }else{
+        Cruds::selectEst(); // listar todos
+    }
+    break;
+     case 'POST': 
+        Cruds::insertEst(); break; 
+     case 'DELETE': 
+        Cruds::deleteEst(); break; 
+     case 'PUT': 
+     Cruds::ubdateESt(); break; } ?> 
+
+pon.xml
+ <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>${jakartaee}</version>
+            <scope>provided</scope>
+        </dependency>
+       <!-- Source: https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+<dependency>
+    <groupId>com.google.code.gson</groupId>
+    <artifactId>gson</artifactId>
+    <version>2.13.2</version>
+    <scope>compile</scope>
+</dependency>
+modelos
+Estudiante.java
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package modelos;
+
+/**
+ *
+ * @author Lenovo
+ */
+public class Estudiante {
+    private String cedula;
+    private String nombre;
+    private String apellido;
+    private String direccion;
+    private String telefono;
+
+    public Estudiante(String cedula, String nombre, String apellido, String direccion, String telefono) {
+        this.cedula = cedula;
+        this.nombre = nombre;
+        this.apellido = apellido;
+        this.direccion = direccion;
+        this.telefono = telefono;
+    }
+
+    public String getCedula() {
+        return cedula;
+    }
+
+    public void setCedula(String cedula) {
+        this.cedula = cedula;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getApellido() {
+        return apellido;
+    }
+
+    public void setApellido(String apellido) {
+        this.apellido = apellido;
+    }
+
+    public String getDireccion() {
+        return direccion;
+    }
+
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+            
+}
+
+ConsumirApi2.java
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package Controller;
+
+import modelos.Estudiante;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import static java.net.URLEncoder.encode;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+/**
+ *
+ * @author Lenovo
+ */
+public class ConsumidorApi2 {
+    
+    private static final String API_URL = "http://localhost/soa/Controllers/api.php";
+    private static final HttpClient cliente = HttpClient.newHttpClient();
+
+    public static String obtenerEstudiantes(){
+        try{
+        HttpRequest peticion = HttpRequest.newBuilder()
+                .uri(URI.create(API_URL)).GET().build();
+        return cliente.send(peticion, HttpResponse.BodyHandlers.ofString()).body();
+        
+        }catch (Exception e){
+            System.err.println("Error Get: " + e.getMessage());
+            return "";
+        }
+        
+    } 
+    
+    
+    public static String insertar (Estudiante e) {
+ 
+        try {
+           String body = "txtcedula=" + encode(e.getCedula(), "UTF-8")
+        + "&txtnombre=" + encode(e.getNombre(), "UTF-8")
+        + "&txtapellido=" + encode(e.getApellido(), "UTF-8")
+        + "&txtdirecion=" + encode(e.getDireccion(), "UTF-8")
+        + "&txttelefono=" + encode(e.getTelefono(), "UTF-8");
+        
+        HttpRequest peticion = HttpRequest.newBuilder()
+                .uri(URI.create(API_URL))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(body)).build();
+            return cliente.send(peticion, HttpResponse.BodyHandlers.ofString()).body();
+        } catch (Exception ex) {
+            System.err.println("Error Insertar: " + ex.getMessage());
+            return "";
+        }
+    }
+    
+    
+    public static String eliminar(String cedula) throws UnsupportedEncodingException{
+        
+         HttpRequest peticion= HttpRequest.newBuilder()
+                .uri(URI.create(API_URL+"?txtcedula="+encode(cedula))).DELETE().build();
+        try {
+            return cliente.send(peticion, HttpResponse.BodyHandlers.ofString()).body();
+        } catch (Exception ex) {
+            System.err.println("Error Delete: " + ex.getMessage());
+            return "";
+        }
+    }
+    
+    
+    public static String actualizar(Estudiante e){
+        try{
+            String params = "?txtcedula=" + encode(e.getCedula())
+                    + "&txtnombre=" + encode(e.getNombre())
+                    + "&txtapellido=" + encode(e.getApellido())
+                    + "&txtdireccion=" + encode(e.getDireccion())
+                    + "&txttelefono=" + encode(e.getTelefono());
+        
+        HttpRequest peticion = HttpRequest.newBuilder()
+                .uri(URI.create(API_URL + params))
+                .PUT(HttpRequest.BodyPublishers.noBody()).build();
+        
+        return cliente.send(peticion, HttpResponse.BodyHandlers.ofString()).body();
+        
+        }catch (Exception ex) {
+            System.err.println("Error Actualizar: " + ex.getMessage());
+            return "";
+        }
+    }
+    
+}
+servers
+EstudianteServlet2
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
+ */
+package servers;
+
+import modelos.Estudiante;
+import Controller.ConsumidorApi2;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
+import java.io.IOException;
+import java.io.PrintWriter;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+@WebServlet(name = "EstudiantesServlet2", urlPatterns = {"/estudiantes2"})
+public class EstudianteServlet2 extends HttpServlet {
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        
+        // Validar parámetros
+        String cedula = request.getParameter("cedula");
+        String nombre = request.getParameter("nombre");
+        String apellido = request.getParameter("apellido");
+        String telefono = request.getParameter("telefono");
+        String direccion = request.getParameter("direccion");
+        
+        if (cedula == null || cedula.trim().isEmpty()) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "La cédula es requerida");
+            return;
+        }
+        
+        Estudiante e = new Estudiante(cedula, nombre, apellido,  direccion, telefono);
+        ConsumidorApi2.insertar(e);
+        response.sendRedirect(request.getContextPath() + "/estudiantes2");
+    }
+    
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        
+        String accion = request.getParameter("accion");
+        
+        if (accion == null || accion.isEmpty()) {
+            String json = ConsumidorApi2.obtenerEstudiantes();
+            JsonArray lista = JsonParser.parseString(json).getAsJsonArray();
+            request.setAttribute("estudiantes", lista);
+            request.getRequestDispatcher("/estudiantes2.jsp").forward(request, response);
+        } else if (accion.equals("irAgregar")) {
+            request.getRequestDispatcher("/agregar2.jsp").forward(request, response);
+        } else if (accion.equals("editar")) {
+            String cedula = request.getParameter("cedula");
+            if (cedula != null && !cedula.isEmpty()) {
+                request.setAttribute("cedula", cedula);
+                request.getRequestDispatcher("/editar2.jsp").forward(request, response);
+            } else {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cédula no proporcionada");
+            }
+        }
+    }
+    
+    @Override
+    protected void doPut(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // Para usar PUT, necesitas configurar un filtro o usar _method=PUT
+         String cedula = request.getParameter("cedula");
+        String nombre = request.getParameter("nombre");
+        String apellido = request.getParameter("apellido");
+        String telefono = request.getParameter("telefono");
+        String direccion = request.getParameter("direccion");
+         Estudiante e = new Estudiante(cedula, nombre, apellido,  direccion, telefono);
+
+        String respuesta = ConsumidorApi2.actualizar(e);
+        response.setContentType("application/json");
+        response.getWriter().write(respuesta);
+    }
+    
+    @Override
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String cedula = request.getParameter("cedula");
+        if (cedula == null || cedula.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cédula requerida");
+            return;
+        }
+        String respuesta = ConsumidorApi2.eliminar(cedula);
+        response.setContentType("application/json");
+        response.getWriter().write(respuesta);
+    }
+}
+estudiantes2.jsp
+<%@page import="com.google.gson.JsonArray, com.google.gson.JsonObject, modelos.Estudiante"%>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Estudiantes</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f4f6f9;
+        }
+
+        .container-box {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .btn-agregar {
+            margin-bottom: 15px;
+        }
+
+        table {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th {
+            text-align: center;
+        }
+
+        td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .btn-warning, .btn-eliminar {
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container mt-5">
+    <div class="container-box">
+
+        <h1 class="text-center text-primary">📚 Lista de estudiantes Objetos</h1>
+
+        <div class="text-end">
+            <a href="estudiantes2?accion=irAgregar" class="btn btn-primary btn-agregar">+ Agregar estudiante</a>
+        </div>
+
+        <%
+            JsonArray estudiantes = (JsonArray) request.getAttribute("estudiantes");
+            if (estudiantes != null)
+        %>    
+<form method="GET" action="estudiantes2" class="row g-2 mb-3">
+    <div class="col-md-6">
+        <input type="text" name="buscar" class="form-control"
+               placeholder="Buscar por cédula">
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-success w-100">Buscar</button>
+    </div>
+    <div class="col-md-2">
+        <a href="estudiantes2" class="btn btn-secondary w-100">Ver todos</a>
+    </div>
+</form>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Cedula</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Direccion</th>
+                        <th>Telefono</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <%
+                        for (Object obj : estudiantes) {
+                            JsonObject e = (JsonObject) obj;
+
+                            String cedula = e.has("cedula") ? e.get("cedula").getAsString() : "N/A";
+                            String nombre = e.has("nombre") ? e.get("nombre").getAsString() : "N/A";
+                            String apellido = e.has("apellido") ? e.get("apellido").getAsString() : "N/A";
+                            String direccion = e.has("direccion") ? e.get("direccion").getAsString() : "N/A";
+                            String telefono = e.has("telefono") ? e.get("telefono").getAsString() : "N/A";
+                    %>
+
+                    <tr>
+                        <td><%=cedula%></td>
+                        <td><%=nombre%></td>
+                        <td><%=apellido%></td>
+                        <td><%=direccion%></td>
+                        <td><%=telefono%></td>
+
+                        <td>
+                            <a href="estudiantes2?accion=editar&cedula=<%= cedula.trim()%>&nombre=<%= nombre.trim()%>&apellido=<%= apellido.trim()%>&direccion=<%= direccion.trim()%>&telefono=<%= telefono.trim()%>" 
+                               class="btn btn-warning btn-sm">
+                                Editar
+                            </a>
+
+                            <button type="button" class="btn btn-danger btn-sm"
+                                    onclick="confirmarEliminar('<%=cedula%>')">
+                                Eliminar
+                            </button>
+                        </td>
+                    </tr>
+
+                    <%
+                        }
+                    %>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function confirmarEliminar(cedula) {
+    if (confirm('Desea eliminar al estudiante?')) {
+        fetch('estudiantes2?cedula=' + cedula, {
+            method: 'DELETE'
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+}
+</script>
+
+</body>
+</html> 
+
+agregar2.jsp
+<%-- 
+    Document   : agregar2
+    Created on : 27 abr 2026, 21:28:40
+    Author     : Lenovo
+--%>
+
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Agregar Estudiante</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Registrar Estudiante</h5>
+                </div>
+                <div class="card-body">
+                    
+                    <form action="estudiantes2" method="POST">
+                        
+                        <div class="mb-3">
+                            <label for="cedula" class="form-label">Cédula</label>
+                            <input type="text" class="form-control" id="cedula" name="cedula"
+       pattern="[0-9]{10}" maxlength="10"
+       oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+       title="Debe tener exactamente 10 dígitos numéricos"
+       required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nombre" class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="apellido" class="form-label">Apellido</label>
+                                <input type="text" class="form-control" id="apellido" name="apellido" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="telefono" class="form-label">Teléfono</label>
+<input type="text" class="form-control" id="telefono" name="telefono"
+       pattern="09[0-9]{8}" maxlength="10"
+       oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+       title="Debe empezar con 09 y tener 10 dígitos"
+       required>                        </div>
+
+                        <div class="mb-3">
+                            <label for="direccion" class="form-label">Dirección</label>
+                            <textarea class="form-control" id="direccion" name="direccion" rows="3" required></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <a href="estudiantes2" class="text-decoration-none text-secondary">Volver a la lista</a>
+                            <button type="submit" class="btn btn-primary px-4">Guardar</button>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
+editar2.jsp
+
+<%-- 
+    Document   : editar2
+    Created on : 27 abr 2026, 21:27:18
+    Author     : Lenovo
+--%>
+
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Estudiante</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Actualizar Información del Estudiante Objeto</h5>
+                </div>
+                <div class="card-body">
+                    
+                    <form id="formEditar">
+                        
+                        <div class="mb-3">
+                            <label for="cedula" class="form-label">Cédula</label>
+                            <input type="text" class="form-control bg-body-secondary" id="cedula" name="cedula" 
+                                   value="<%= request.getParameter("cedula") %>" readonly>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nombre" class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" 
+                                       value="<%= request.getParameter("nombre") %>" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="apellido" class="form-label">Apellido</label>
+                                <input type="text" class="form-control" id="apellido" name="apellido" 
+                                       value="<%= request.getParameter("apellido") %>" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="telefono" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="telefono" name="telefono" 
+                                   value="<%= request.getParameter("telefono") %>" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="direccion" class="form-label">Dirección</label>
+                            <textarea class="form-control" id="direccion" name="direccion" rows="3" required><%= request.getParameter("direccion") %></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <a href="estudiantes2" class="text-decoration-none text-secondary">Cancelar</a>
+                            <button type="button" onclick="actualizar()" class="btn btn-warning px-4 fw-bold">Actualizar</button>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+                    <script>
+                        
+                           function actualizar(){
+                                const formulario = document.getElementById('formEditar');
+                                const formData = new FormData(formulario);
+                                
+                               const params = new URLSearchParams({cedula:document.getElementById("cedula").value,
+                               nombre:document.getElementById("nombre").value,
+                              apellido:document.getElementById("apellido").value,
+                               telefono:document.getElementById("telefono").value,
+                               direccion:document.getElementById("direccion").value});
+                                
+                                fetch('estudiantes2?'+params, {
+                                    method: 'PUT'
+                                    
+                                })
+                                
+                                       .then(response => {
+                                          if(response.ok){
+                                             alert("Estudiante actualizado con exito");
+                                             window.location.href = 'estudiantes2';
+                        
+                                           }else{
+                                             alert("No se pudo actualizar al estudiante");
+                                           }
+                                       }).catch(error=>console.error('Error:', error));
+                            }
+                            
+                       </script>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+
+
+
+	
