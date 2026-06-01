@@ -1,0 +1,471 @@
+package com.uta.Grupo05.controller;
+
+import com.uta.Grupo05.entities.Facultad;
+import com.uta.Grupo05.repository.carreraRepository;
+import com.uta.Grupo05.repository.FacultadRepository;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import com.uta.Grupo05.entities.carrera;
+
+@Controller
+@RequestMapping("/carreras")
+public class CarreraController {
+
+    private final carreraRepository carreraRepository;
+    private final FacultadRepository facultadRepository;
+
+    public CarreraController(
+            carreraRepository carreraRepository,
+            FacultadRepository facultadRepository
+    ) {
+        this.carreraRepository = carreraRepository;
+        this.facultadRepository = facultadRepository;
+    }
+
+    @GetMapping
+    public String listar(Model model){
+
+        model.addAttribute(
+                "carreras",
+                carreraRepository.findAll()
+        );
+
+        model.addAttribute(
+                "facultades",
+                facultadRepository.findAll()
+        );
+
+        return "carreras";
+    }
+
+    @PostMapping
+    public String guardar(
+            @RequestParam String nombre,
+
+            @RequestParam Long facultadId
+
+    ){
+
+        Facultad facultad =
+                facultadRepository.findById(facultadId)
+                        .orElseThrow();
+
+        carrera carrera = new carrera();
+
+        carrera.setNombre(nombre);
+
+
+        carrera.setFacultad(facultad);
+
+        carreraRepository.save(carrera);
+
+
+        return "redirect:/carreras";
+    }
+}
+ package com.uta.Grupo05.controller;
+import com.uta.Grupo05.entities.Facultad;
+import com.uta.Grupo05.repository.FacultadRepository;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+@Controller
+@RequestMapping("/facultad")
+public class FacultadController {
+
+    private final FacultadRepository facultadRepository;
+
+    public FacultadController(FacultadRepository facultadRepository) {
+        this.facultadRepository = facultadRepository;
+    }
+
+    @GetMapping
+    public String listar(Model model){
+
+        model.addAttribute(
+                "facultad",
+                facultadRepository.findAll()
+        );
+
+        return "facultad";
+    }
+
+    @PostMapping
+    public String guardar(
+            @RequestParam String nombre,
+            @RequestParam String direccion
+    ){
+
+        Facultad facultad = new Facultad();
+
+        facultad.setNombre(nombre);
+        facultad.setDireccion(direccion);
+
+        facultadRepository.save(facultad);
+
+        return "redirect:/facultad";
+    }
+}
+ 
+package com.uta.Grupo05.entities;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "carrera")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class carrera {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String nombre;
+
+
+    @ManyToOne
+    @JoinColumn(name = "facultad_id")
+    private Facultad facultad;
+} 
+package com.uta.Grupo05.entities;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.List;
+
+@Entity
+@Table(name = "facultad")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Facultad {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    private String nombre;
+
+    private String direccion;
+
+    @OneToMany(mappedBy = "facultad")
+    private List<carrera> carreras;
+}
+
+
+package com.uta.Grupo05.repository;
+
+import com.uta.Grupo05.entities.carrera;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface carreraRepository
+        extends JpaRepository<carrera, Long> {
+
+} 
+
+package com.uta.Grupo05.repository;
+
+import com.uta.Grupo05.entities.Facultad;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface FacultadRepository
+        extends JpaRepository<Facultad, Long> {
+} 
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Facultades</title>
+</head>
+<body>
+
+<h1>Registro de Facultades</h1>
+
+<form action="/facultad" method="post">
+
+    <label>Nombre:</label>
+    <input type="text" name="nombre">
+
+    <br><br>
+
+    <label>Dirección:</label>
+    <input type="text" name="direccion">
+
+    <br><br>
+
+    <button type="submit">
+        Guardar
+    </button>
+
+</form>
+
+<hr>
+
+<h2>Listado de Facultades</h2>
+
+<table border="1">
+
+    <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Dirección</th>
+    </tr>
+
+    <tr th:each="f : ${facultad}">
+
+        <td th:text="${f.id}"></td>
+
+        <td th:text="${f.nombre}"></td>
+
+        <td th:text="${f.direccion}"></td>
+
+    </tr>
+
+</table>
+
+<br>
+
+<a href="/carreras">
+    Ir a Carreras
+</a>
+
+</body>
+</html> 
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Carreras</title>
+</head>
+<body>
+
+<h1>Registro de Carreras</h1>
+
+<form action="/carreras" method="post">
+
+    <label>Nombre Carrera:</label>
+    <input type="text" name="nombre">
+
+    <br><br>
+
+    <label>Facultad:</label>
+
+    <select name="facultadId">
+
+        <option
+                th:each="f : ${facultades}"
+                th:value="${f.id}"
+                th:text="${f.nombre}">
+        </option>
+
+    </select>
+
+    <br><br>
+
+    <button type="submit">
+        Guardar
+    </button>
+
+</form>
+
+<hr>
+
+<h2>Listado de Carreras</h2>
+
+<table border="1">
+
+    <tr>
+        <th>ID</th>
+        <th>Carrera</th>
+        <th>Facultad</th>
+    </tr>
+
+    <tr th:each="c : ${carreras}">
+
+        <td th:text="${c.id}"></td>
+
+        <td th:text="${c.nombre}"></td>
+
+        <td th:text="${c.facultad.nombre}"></td>
+
+    </tr>
+
+</table>
+
+<br>
+
+<a href="/facultad">
+    Volver a Facultades
+</a>
+
+</body>
+</html>
+
+mv
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.0.6</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.uta</groupId>
+	<artifactId>Grupo5</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name/>
+	<description/>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>21</java.version>
+		<mapstruct.version>1.5.5.Final</mapstruct.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.mapstruct/mapstruct -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+			<scope>compile</scope>
+		</dependency>
+	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>default-compile</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<annotationProcessorPaths>
+								<path>
+									<groupId>org.projectlombok</groupId>
+									<artifactId>lombok</artifactId>
+								</path>
+								<path>
+									<groupId>org.mapstruct</groupId>
+									<artifactId>mapstruct-processor</artifactId>
+									<version>${mapstruct.version}</version>
+								</path>
+							</annotationProcessorPaths>
+						</configuration>
+					</execution>
+					<execution>
+						<id>default-testCompile</id>
+						<phase>test-compile</phase>
+						<goals>
+							<goal>testCompile</goal>
+						</goals>
+						<configuration>
+							<annotationProcessorPaths>
+								<path>
+									<groupId>org.projectlombok</groupId>
+									<artifactId>lombok</artifactId>
+								</path>
+							</annotationProcessorPaths>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
